@@ -4,9 +4,9 @@ from threading import Lock
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
-from cloudshell.core.logger import qs_logger
+from cloudshell.core.logger.qs_logger import get_qs_logger
 
-from sandbox_scripts.helpers.vm_details_helper import get_vm_custom_param, get_vm_details
+from sandbox_scripts.helpers.resource_helpers import *
 from sandbox_scripts.profiler.env_profiler import profileit
 
 
@@ -16,9 +16,9 @@ class EnvironmentSetup(object):
 
     def __init__(self):
         self.reservation_id = helpers.get_reservation_context_details().id
-        self.logger = qs_logger.get_qs_logger(log_file_prefix="CloudShell Sandbox Setup",
-                                              log_group=self.reservation_id,
-                                              log_category='Setup')
+        self.logger = get_qs_logger(log_file_prefix="CloudShell Sandbox Setup",
+                                    log_group=self.reservation_id,
+                                    log_category='Setup')
 
     @profileit(scriptName='Setup')
     def execute(self):
@@ -27,6 +27,8 @@ class EnvironmentSetup(object):
 
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                             message='Beginning reservation setup')
+
+        self._prepare_connectivity(api, self.reservation_id)
 
         reservation_details = api.GetReservationDetails(self.reservation_id)
 
@@ -38,25 +40,35 @@ class EnvironmentSetup(object):
             reservation_details = api.GetReservationDetails(self.reservation_id)
 
         self._try_exeucte_autoload(api=api,
-                                   reservation_details=reservation_details,
                                    deploy_result=deploy_result,
                                    resource_details_cache=resource_details_cache)
 
         self._connect_all_routes_in_reservation(api=api,
-                                                reservation_details=reservation_details)
+                                                reservation_details=reservation_details,
+                                                reservation_id=self.reservation_id)
 
         self._run_async_power_on_refresh_ip_install(api=api,
                                                     reservation_details=reservation_details,
                                                     deploy_results=deploy_result,
-                                                    resource_details_cache=resource_details_cache)
+                                                    resource_details_cache=resource_details_cache,
+                                                    reservation_id=self.reservation_id)
 
         self.logger.info("Setup for reservation {0} completed".format(self.reservation_id))
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                             message='Reservation setup finished successfully')
 
-    def _try_exeucte_autoload(self, api, reservation_details, deploy_result, resource_details_cache):
+    def _prepare_connectivity(self, api, reservation_id):
         """
-        :param GetReservationDescriptionResponseInfo reservation_details:
+        :param CloudShellAPISession api:
+        :param str reservation_id:
+        """
+        self.logger.info("Preparing connectivity for reservation {0}".format(self.reservation_id))
+        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                            message='Preparing connectivity')
+        api.PrepareSandboxConnectivity(reservation_id)
+
+    def _try_exeucte_autoload(self, api, deploy_result, resource_details_cache):
+        """
         :param CloudShellAPISession api:
         :param BulkAppDeploymentyInfo deploy_result:
         :param (dict of str: ResourceInfo) resource_details_cache:
@@ -131,19 +143,40 @@ class EnvironmentSetup(object):
 
         return res
 
-    def _connect_all_routes_in_reservation(self, api, reservation_details):
+    def _connect_all_routes_in_reservation(self, api, reservation_details, reservation_id):
+        """
+        :param CloudShellAPISession api:
+        :param GetReservationDescriptionResponseInfo reservation_details:
+        :param str reservation_id:
+        :return:
+        """
+        # List of all resource names created in reservation
+        resources_created_in_res = map(lambda x: x.Name.lower(),
+                                       get_resources_created_in_res(reservation_details, reservation_id))
+
         connectors = reservation_details.ReservationDescription.Connectors
         endpoints = []
         for endpoint in connectors:
             if endpoint.State in ['Disconnected', 'PartiallyConnected', 'ConnectionFailed'] \
                     and endpoint.Target and endpoint.Source:
-                endpoints.append(endpoint.Target)
-                endpoints.append(endpoint.Source)
+                target_ok = True
+                target_resource = find_resource_by_name(reservation_details, endpoint.Target)
+                if target_resource and is_deployed_app(
+                        target_resource) and endpoint.Target.lower() not in resources_created_in_res:
+                    target_ok = False
+
+                source_ok = True
+                source_resource = find_resource_by_name(reservation_details, endpoint.Source)
+                if source_resource and is_deployed_app(
+                        source_resource) and endpoint.Source.lower() not in resources_created_in_res:
+                    source_ok = False
+
+                if target_ok and source_ok:
+                    endpoints.append(endpoint.Target)
+                    endpoints.append(endpoint.Source)
 
         if not endpoints:
             self.logger.info("No routes to connect for reservation {0}".format(self.reservation_id))
-            api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                message='Nothing to connect')
             return
 
         self.logger.info("Executing connect routes for reservation {0}".format(self.reservation_id))
@@ -153,21 +186,26 @@ class EnvironmentSetup(object):
         res = api.ConnectRoutesInReservation(self.reservation_id, endpoints, 'bi')
         return res
 
-    def _run_async_power_on_refresh_ip_install(self, api, reservation_details, deploy_results, resource_details_cache):
+    def _run_async_power_on_refresh_ip_install(self, api, reservation_details, deploy_results, resource_details_cache,
+                                               reservation_id):
         """
         :param CloudShellAPISession api:
         :param GetReservationDescriptionResponseInfo reservation_details:
         :param BulkAppDeploymentyInfo deploy_results:
         :param (dict of str: ResourceInfo) resource_details_cache:
+        :param str reservation_id:
         :return:
         """
-        resources = reservation_details.ReservationDescription.Resources
+        # filter out resources not created in this reservation
+        resources = get_resources_created_in_res(reservation_details=reservation_details, reservation_id=reservation_id)
         if len(resources) == 0:
             api.WriteMessageToReservationOutput(
                 reservationId=self.reservation_id,
                 message='No resources to power on or install')
             self._validate_all_apps_deployed(deploy_results)
             return
+
+
 
         pool = ThreadPool(len(resources))
         lock = Lock()

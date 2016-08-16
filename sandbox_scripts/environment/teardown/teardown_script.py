@@ -6,7 +6,7 @@ from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.core.logger import qs_logger
 from sandbox_scripts.profiler.env_profiler import profileit
-from sandbox_scripts.helpers.vm_details_helper import get_vm_custom_param
+from sandbox_scripts.helpers.resource_helpers import get_vm_custom_param, get_resources_created_in_res
 
 
 class EnvironmentTeardown:
@@ -28,7 +28,7 @@ class EnvironmentTeardown:
 
         self._disconnect_all_routes_in_reservation(api, reservation_details)
 
-        self._power_off_and_delete_all_vm_resources(api, reservation_details)
+        self._power_off_and_delete_all_vm_resources(api, reservation_details, self.reservation_id)
 
         self._cleanup_connectivity(api, self.reservation_id)
 
@@ -46,8 +46,6 @@ class EnvironmentTeardown:
 
         if not endpoints:
             self.logger.info("No routes to disconnect for reservation {0}".format(self.reservation_id))
-            api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                message="Nothing to disconnecting")
             return
 
         try:
@@ -69,8 +67,16 @@ class EnvironmentTeardown:
             api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                                 message="Error disconnecting apps. Error: {0}".format(exc.message))
 
-    def _power_off_and_delete_all_vm_resources(self, api, reservation_details):
-        resources = reservation_details.ReservationDescription.Resources
+    def _power_off_and_delete_all_vm_resources(self, api, reservation_details, reservation_id):
+        """
+        :param CloudShellAPISession api:
+        :param GetReservationDescriptionResponseInfo reservation_details:
+        :param str reservation_id:
+        :return:
+        """
+        # filter out resources not created in this reservation
+        resources = get_resources_created_in_res(reservation_details=reservation_details,
+                                                 reservation_id=reservation_id)
 
         pool = ThreadPool()
         async_results = []

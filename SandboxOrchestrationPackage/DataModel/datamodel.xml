@@ -2,11 +2,14 @@
 	<ns0:ResourceFamilies>
 	</ns0:ResourceFamilies>
   <ns0:ScriptDescriptors>
-    <ns0:ScriptDescriptor Alias="Setup script" CategoryName="Hidden Commands" Name="Default Sandbox Setup" Version="1.0.0">
-      <ns0:ScriptInputs />
-    </ns0:ScriptDescriptor>
-    <ns0:ScriptDescriptor Alias="Teardown script" CategoryName="Hidden Commands" Name="Default Sandbox Teardown" Version="1.0.0">
-      <ns0:ScriptInputs />
-    </ns0:ScriptDescriptor>
+      <ns0:ScriptDescriptor Alias="Setup script" CategoryName="Hidden Commands" Name="Default Sandbox Setup" Version="1.0.0">
+          <ns0:ScriptInputs />
+      </ns0:ScriptDescriptor>
+      <ns0:ScriptDescriptor Alias="Teardown script" CategoryName="Hidden Commands" Name="Default Sandbox Teardown" Version="1.0.0">
+          <ns0:ScriptInputs />
+      </ns0:ScriptDescriptor>
+      <ns0:ScriptDescriptor Alias="Save Snapshot" Name="Save Snapshot" Version="1.0.0">
+          <ns0:ScriptInputs />
+      </ns0:ScriptDescriptor>
   </ns0:ScriptDescriptors>
 </ns0:DataModelInfo>

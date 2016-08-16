@@ -67,12 +67,9 @@ target/
 .idea/modules.xml
 .idea/vcs.xml
 .idea/workspace.xml
-SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Setup.zip
-SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Teardown.zip
+.idea/dictionaries
 qpm.ini
 
 # zip files
 *.zip
-SandboxOrchestration.zip
-SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Setup.zip
-SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Teardown.zip
+
