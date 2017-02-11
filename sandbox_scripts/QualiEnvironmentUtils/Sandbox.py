@@ -33,8 +33,6 @@ class SandboxBase(object):
             if full_path:
                 self.blueprint_details = self.api_session.GetTopologyDetails(full_path)
 
-            print("## SandboxBase 5")
-
         except:
             err = "Failed to initialize the Sandbox. Unexpected error:" + \
                   str(sys.exc_info()[0])
