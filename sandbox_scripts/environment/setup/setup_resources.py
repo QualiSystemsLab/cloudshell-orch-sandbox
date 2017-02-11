@@ -23,15 +23,16 @@ class EnvironmentSetupResources(object):
         try:
             healthCheckTool.devices_health_check(write_to_output=True)
 
-            # TODO- Get the config set name from the orchestration's params
-            config_set_name = ''
-            if saveNRestoreTool.is_snapshot():
-                saveNRestoreTool.load_config(config_stage='Snapshots', config_type='Running',
-                                             ignore_models=['Generic TFTP server'])
-            else:
-                saveNRestoreTool.load_config(config_stage='Gold', config_type='Running',
-                                             ignore_models=['Generic TFTP server', 'Config Set Pool'],
-                                             config_set_name=config_set_name)
+            if sandbox.get_tftp_resource():
+                # TODO- Get the config set name from the orchestration's params
+                config_set_name = ''
+                if saveNRestoreTool.is_snapshot():
+                    saveNRestoreTool.load_config(config_stage='Snapshots', config_type='Running',
+                                                 ignore_models=['Generic TFTP server'])
+                else:
+                    saveNRestoreTool.load_config(config_stage='Gold', config_type='Running',
+                                                 ignore_models=['Generic TFTP server', 'Config Set Pool'],
+                                                 config_set_name=config_set_name)
 
             # call activate_all_routes_and_connectors
             sandbox.activate_all_routes_and_connectors()

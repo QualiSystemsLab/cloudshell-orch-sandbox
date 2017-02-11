@@ -18,8 +18,9 @@ class EnvironmentTeardownResources:
 
         sandbox.clear_all_resources_live_status()
         try:
-            saveNRestoreTool.load_config(config_stage='Base', config_type='Running',
-                                         ignore_models=['Generic TFTP server'])
+            if sandbox.get_tftp_resource():
+                saveNRestoreTool.load_config(config_stage='Base', config_type='Running',
+                                             ignore_models=['Generic TFTP server'])
 
         except QualiError as qe:
             self.logger.error("Teardown failed. " + str(qe))
