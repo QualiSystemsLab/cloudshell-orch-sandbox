@@ -17,15 +17,17 @@ class EnvironmentSaveSnapshot:
         saveNRestoreTool = NetworkingSaveRestore(sandbox)
         sandbox.clear_all_resources_live_status()
         try:
-            snapshot_name = os.environ['name']
-            sandbox.save_sandbox_as_blueprint(snapshot_name)
+            if sandbox.get_tftp_resource():
+                snapshot_name = os.environ['name']
+                sandbox.save_sandbox_as_blueprint(snapshot_name)
 
-            # replace spaces with _ in the snapshot's name
-            snapshot_name = snapshot_name.replace(' ', '_')
+                # replace spaces with _ in the snapshot's name
+                snapshot_name = snapshot_name.replace(' ', '_')
 
-            saveNRestoreTool.save_config(snapshot_name=snapshot_name, config_type='running',
-                                         ignore_models=['Generic TFTP server'])
-
+                saveNRestoreTool.save_config(snapshot_name=snapshot_name, config_type='running',
+                                             ignore_models=['Generic TFTP server'])
+            else:
+                sandbox.report_error("There is no TFTP resource available in the reservation",True,True)
         except QualiError as qe:
             self.logger.error("Save snapshot failed. " + str(qe))
 

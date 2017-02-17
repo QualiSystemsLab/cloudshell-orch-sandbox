@@ -3,7 +3,13 @@ from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
 from sandbox_scripts.QualiEnvironmentUtils.Networking.ConfigFileManager import *
 from sandbox_scripts.QualiEnvironmentUtils.Networking.PoolManager import *
 
-import tftpy
+try:
+    import tftpy
+except:
+    import pip
+    pip.main(['install','tftpy'])
+    import tftpy
+
 import tempfile
 
 
@@ -26,14 +32,10 @@ class NetworkingSaveRestore(object):
                 self.sandbox.report_error("Failed to find the network's tftp path", raise_error=True,
                                           write_to_output_window=False)
         else:
-            self.sandbox.report_error("Failed to find a tftp resource in the sandbox", raise_error=True,
+            self.sandbox.report_error("Failed to find a tftp resource in the sandbox", raise_error=False,
                                       write_to_output_window=False)
 
-            # pool_resource = self.sandbox.get_config_set_pool_resource()
-            ##update all the resources' attributes with the data from the pool
-            # if pool_resource is not None:
-            #    pool_manager = PoolManager(sandbox = self.sandbox, pool_resource = pool_resource)
-            #    pool_manager.push_data_from_pool_to_sandbox()
+
 
     # ----------------------------------
     # load_network_config(ResourceName,config_type, RestoreMethod=Override)
@@ -157,17 +159,6 @@ class NetworkingSaveRestore(object):
         :param bool write_to_output: Optional. should messages be sent to the command output.
         """
         root_resources = self.sandbox.get_root_resources()
-
-     #   new_config_path = self.tftp_map_drive + '/Snapshots/' + snapshot_name
-
-     #   windows_server_path = self.tftp_server_destination_path.replace("/","\\")
-     #   new_config_path =  "\\\\" + self.tftp_address + "\\" + windows_server_path + "\Snapshots\\" + snapshot_name
-        #config_path = 'Z:/Configs/snapshots/Snap12'
-
-        #config_path = self.config_files_root + '/snapshots/' + self.sandbox.Blueprint_name
-
-        #if not os.path.exists(new_config_path):
-        #    os.makedirs(new_config_path)
 
         config_path = self.config_files_root + '/Snapshots/' + snapshot_name
 
