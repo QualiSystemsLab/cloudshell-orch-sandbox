@@ -88,5 +88,5 @@ class ConfigFileManager:
 
             return concrete_config_data
         except Exception as ex:
-            raise QualiError('ConfigFileManager', "Failed to create a concrete config file from the template\'s data. "
-                             "Unexpected error: " + ex.message)
+            raise QualiError('ConfigFileManager', "Failed to create concrete config for " + resource.name +
+                             " from template. Unexpected error: " + ex.message)
