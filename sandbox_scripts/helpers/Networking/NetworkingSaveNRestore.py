@@ -250,7 +250,7 @@ class NetworkingSaveRestore(object):
 
         load_result.message = message
 
-        if is_power_ctrl_ok and in_teardown_mode:
+        if is_power_ctrl_ok and in_teardown_mode and resource.model not in ignore_models:
             # Attempt PowerOFF.
             # If threshold is a Negative value, no power off.
             # If threshold is 0-4, power off now
@@ -258,9 +258,10 @@ class NetworkingSaveRestore(object):
             try:
                 PowerOff=False
                 threshold = resource.get_attribute('PowerOff Threshold')
+                # avoid attempts to manage too small a window
                 if int(threshold) <= 4 and int(threshold) > 0:
                     threshold = 0
-                self.sandbox.report_info("Using power threshold of " + str(threshold))
+                self.sandbox.report_info("Using power threshold of " + str(threshold) + " for " + resource.name)
                 if int(threshold) > 4:
                     period_start = (datetime.datetime.now() + datetime.timedelta(minutes=2)).isoformat()
                     period_end = (datetime.datetime.now() + datetime.timedelta(minutes=int(threshold))).isoformat()
