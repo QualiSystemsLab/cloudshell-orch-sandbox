@@ -90,3 +90,4 @@ class ConfigFileManager:
         except Exception as ex:
             raise QualiError('ConfigFileManager', "Failed to create concrete config for " + resource.name +
                              " from template. Unexpected error: " + ex.message)
+
