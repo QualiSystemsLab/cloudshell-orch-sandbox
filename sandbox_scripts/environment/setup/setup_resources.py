@@ -18,6 +18,7 @@ class EnvironmentSetupResources(object):
         sandbox = SandboxBase(self.reservation_id, self.logger)
         saveNRestoreTool = SaveRestoreManager(sandbox)
         sandbox.report_info('Beginning load configuration for resources')
+        sandbox.report_info('Clearing status indicators ', write_to_output_window=True)
         #Consider an ignore family capability? This list gets to be a maint issue...?
         ignore_models=['Generic TFTP server', 'Config Set Pool', 'Generic FTP server',
                                'netscout switch 3912', 'Subnet-28', 'Subnet-30', 'GitLab', 'SSID_Pool' ]
