@@ -28,7 +28,8 @@ class EnvironmentSaveSnapshot:
                 #take first part of blueprint name up to first hyphen, underscore, or space
                 snapshot_name = sandbox.Blueprint_name.replace('-', '_')
                 snapshot_name = snapshot_name.replace(' ', '_').split('_')[0] + "_"
-                snapshot_name += username + "_" + os.environ['name']
+                snapshot_name += username + "_" + os.environ['name'].replace(' ','_')
+                snapshot_name = snapshot_name.replace('-', '_')
                 sandbox.save_sandbox_as_blueprint(snapshot_name)
                 sandbox.setcategorysnapshots(snapshot_name)
                 sandbox.report_info("Blueprint " + snapshot_name + " created", write_to_output_window=True)
