@@ -26,7 +26,9 @@ class ResourceBase(object):
                 self.model = self.get_attribute('Model')
             else:
                 self.model = self.details.ResourceModelName
-
+            #self.model = self.model.replace(' ','_')
+            #Hacked in to cover for filenames too long for product, such as those below:
+            self.model = self.model.replace('Cisco 5500 Series Wireless LAN Controller','WLC')
             self.alias = resource_alias
 
             self.power_on_wl = ["power_on", "Power On", "Power ON", "PowerOn"]  # whitelist for power on commands
@@ -144,7 +146,7 @@ class ResourceBase(object):
 
     # ----------------------------------
     # ----------------------------------
-    def health_check(self,reservation_id, health_check_attempts=1):
+    def health_check(self,reservation_id, health_check_attempts=1, printOutput=True):
         """
         Run the healthCheck command on the device
         :param str reservation_id:  Reservation id.
@@ -153,7 +155,7 @@ class ResourceBase(object):
             for attempts in range(0, int(health_check_attempts)):
                 try:
                     # Return a detailed description in case of a failure
-                    out = self.execute_command(reservation_id, 'health_check', printOutput=True) #.Output()
+                    out = self.execute_command(reservation_id, 'health_check', printOutput=printOutput) #.Output()
                     if out.Output.find(' passed') == -1 and attempts == (int(health_check_attempts) -1):
                         err = "Health check did not pass for device " + self.name + ". " + out.Output
                         return err
