@@ -148,6 +148,8 @@ class NetworkingSaveRestore(object):
                 print resource.name + " power on fault. " + ex.message
 
         load_config_to_device = self._is_load_config_to_device(resource, ignore_models=ignore_models)
+        # ------------------------------------------------------
+        #if load_config_to_device  and  '3850-6' in resource.name:
         if load_config_to_device:
             self.sandbox.report_info(resource.name + " - starting health check", write_to_output_window=True)
             health_check_result = resource.health_check(self.sandbox.id, health_check_attempts)
@@ -191,9 +193,11 @@ class NetworkingSaveRestore(object):
                             if image_key:
                                 #self.sandbox.report_info("Using image key " + str(image_key) + " for " + resource.name)
                                 dict_img_version = images_path_dict[image_key].version
+                                if version < ' ':
+                                    self.sandbox.report_error('Firmware spec file is missing version element for ' + resource.name)
                             else:
                                 # Getting here means no firmware specified in FirmwareData.csv
-                                message += "\n" + resource.name + ": NO firmware version specified in Base FirmwareData.csv"
+                                message += "\n" + resource.name + ": NO firmware version specified in FirmwareData.csv"
 
                             # same image version - Only load config (running override)
                             #message += resource.name + ": loading configuration from " + config_path
@@ -222,12 +226,12 @@ class NetworkingSaveRestore(object):
                             message += "\n" + resource.name + ": loading config from:" + config_path
                             resource.load_network_config(self.sandbox.id, config_path, 'Running', 'Override')
 
-                    health_check_result = resource.health_check(self.sandbox.id, health_check_attempts=1)
+                    health_check_result = resource.health_check(self.sandbox.id, health_check_attempts=1, printOutput=False)
                     if health_check_result != '':
                         raise QualiError(self.sandbox.id, resource.name +
                                          " did not pass health check after loading configuration")
                     else:
-                        self.sandbox.report_info(resource.name + " -- final Health Check Passed.")
+                        self.sandbox.report_info(resource.name + " - Final Health Check Passed.", write_to_output_window=True)
 
                 except QualiError as qe:
                     load_result.run_result = False
@@ -256,7 +260,7 @@ class NetworkingSaveRestore(object):
             # If threshold is 0-4, power off now
             # If threshold is >5, check for usesage in that period with a 2minute shift ahead
             try:
-                PowerOff=False
+                PowerOff = True
                 threshold = resource.get_attribute('PowerOff Threshold')
                 # avoid attempts to manage too small a window
                 if int(threshold) <= 4 and int(threshold) > 0:
@@ -269,10 +273,11 @@ class NetworkingSaveRestore(object):
                     for element in upcoming.Resources:
                         if element.Name == resource.name:
                             if element.Reservations.__len__() > 0:
-                                self.sandbox.report_info(resource.name + ": not powered off due to upcoming use.",
+                                for resv in element.Reservations:
+                                    if resv.StartTime >= period_start and resv.StartTime < period_end:
+                                        self.sandbox.report_info(resource.name + ": not powered off due to upcoming use.",
                                                          write_to_output_window=True)
-                            else:
-                                PowerOff=True
+                                        PowerOff = False
                 if int(threshold) == 0 or PowerOff==True:
                     pwr_cmd = resource.has_connected_power_off()
                     if pwr_cmd > "":
