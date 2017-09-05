@@ -44,8 +44,10 @@ class EnvironmentSaveSnapshot:
                  sandbox.report_error("There is no storage resource (e.g. FTP) available in the reservation",True,True)
 
         except QualiError as qe:
-            self.logger.error("Save snapshot failed. " + str(qe))
-
+            self.logger.error("Save snapshot failed. " + qe.message)
+            if "Name must contain only al" in qe.message:
+                sys.tracebacklimit = 0
+            raise Exception("Save snapshot failed. " + qe.message)
         except Exception as ex:
             blob = ex.message
             self.logger.error("Save snapshot. Unexpected error: " + str(sys.exc_info()))
