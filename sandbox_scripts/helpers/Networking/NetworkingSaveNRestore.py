@@ -391,9 +391,9 @@ class NetworkingSaveRestore(object):
                 tmp_template_config_file_data = content_file.read()
 
             concrete_config_data = ''
-            subst_log = ''
+
             try:
-                concrete_config_data, subst_log = config_file_mgr.create_concrete_config_from_template(
+                concrete_config_data = config_file_mgr.create_concrete_config_from_template(
                     tmp_template_config_file_data,
                     config_set_pool_data,
                     self.sandbox, resource)
@@ -402,15 +402,7 @@ class NetworkingSaveRestore(object):
                                                         'for resource {0}'.format(resource.name),
                                           log_message=qe.message,
                                           write_to_output_window=True)
-            if resource.attribute_exist('Subst Log') and subst_log > '':
-                now = datetime.datetime.now()
-                subst_log = self.sandbox.id + ' @ ' + now.strftime("%Y-%m-%d %H:%M") + '\n' + subst_log
-                try:
-                    resource.set_attribute_value('Subst_Log', subst_log)
-                except QualiError as qe:
-                    self.sandbox.report_error('Could not post subst_log data for resource {0}'.format(resource.name),
-                                              log_message=qe.message,
-                                              write_to_output_window=True)
+
             tmp_concrete_config_file = tempfile.NamedTemporaryFile(delete=False)
             tf = file(tmp_concrete_config_file.name, 'wb+')
             tf.write(concrete_config_data)
