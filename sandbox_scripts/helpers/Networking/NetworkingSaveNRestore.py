@@ -1,6 +1,6 @@
 # coding=utf-8
 import csv
-import os, datetime
+import os, datetime, time
 import tempfile
 from multiprocessing.pool import ThreadPool
 from threading import Lock
@@ -9,6 +9,7 @@ from sandbox_scripts.QualiEnvironmentUtils.ConfigPoolManager import ConfigPoolMa
 from sandbox_scripts.helpers.Networking.base_save_restore import *
 from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
 from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import rsc_run_result_struct
+from cloudshell.api.cloudshell_api import InputNameValue
 
 class NetworkingSaveRestore(object):
     def __init__(self, sandbox):
@@ -84,7 +85,6 @@ class NetworkingSaveRestore(object):
                                                health_check_attempts, lock,
                                                use_Config_file_path_attr,in_teardown_mode))
                              for resource in root_resources]
-
             pool.close()
             pool.join()
             for async_result in async_results:
@@ -99,8 +99,28 @@ class NetworkingSaveRestore(object):
                     self.sandbox.report_info(res.resource_name + "\n" + res.message, write_to_output_window=True)
             if remove_temp_files:
                 self._remove_temp_config_files()
+
+            #Run Validate L2 Routes command on each IOS or NXOS device; pause for ports to come 'detected'
+            if not in_teardown_mode:
+                been_here = False
+                for resource in root_resources:
+                    if resource.has_command('Validate_L2_Routes'):
+                        if been_here is False:
+                            been_here = True
+                            self.sandbox.report_info('Pausing 60s before "Validate L2 Routes"', write_to_output_window=True)
+                            time.sleep(90)
+                        try:
+                            command_inputs = [InputNameValue('Show_Not_Found_Only', 'y')]
+                            self.sandbox.api_session.ExecuteCommand(self.sandbox.id, resource.name, 'Resource',
+                                                                    "Validate_L2_Routes",
+                                                                    commandInputs=command_inputs,
+                                                                    printOutput=True)
+                        except Exception as ex:
+                            self.sandbox.report_error("Validate L2 Routes failed to run for " + resource.name +
+                                                      '  ex: ' + ex.message,
+                                                      write_to_output_window=True)
         else:
-            self.sandbox.report_info("No networking resources found to process.")
+            self.sandbox.report_info("No networking resources found to process.", write_to_output_window=True)
 
     # ----------------------------------
     # ----------------------------------
@@ -159,7 +179,7 @@ class NetworkingSaveRestore(object):
                     config_path = ''
                     with lock:
                         if config_stage == 'Snapshots':
-                            config_path = root_path + resource.name + '_' + resource.model + '.cfg'
+                            config_path = root_path + resource.name + '_' + resource.model.replace(' ','_') + '.cfg'
                             self.sandbox.report_info("Using " + str(config_path))
                         else:
                             config_path = self._get_concrete_config_file_path(root_path, resource, config_stage,
@@ -253,7 +273,7 @@ class NetworkingSaveRestore(object):
                 message += err
 
         load_result.message = message
-
+        #self.sandbox.report_info('power off control disabled in this vers', write_to_output_window=True)
         if is_power_ctrl_ok and in_teardown_mode and resource.model not in ignore_models:
             # Attempt PowerOFF.
             # If threshold is a Negative value, no power off.
@@ -345,11 +365,11 @@ class NetworkingSaveRestore(object):
         if config_set_pool_resource is not None:
             config_set_pool_manager = ConfigPoolManager(sandbox=self.sandbox, pool_resource=config_set_pool_resource)
             config_set_pool_data = config_set_pool_manager.pool_data
-        config_path = root_path + resource.alias + '_' + resource.model + '.cfg'
+        config_path = root_path + resource.alias + '_' + resource.model.replace(' ','_') + '.cfg'
         config_path = config_path.replace(' ', '_')
         # Look for a template config file
         tmp_template_config_file = tempfile.NamedTemporaryFile(delete=False)
-        tftp_template_config_path = root_path + resource.alias + '_' + resource.model + '.tm'
+        tftp_template_config_path = root_path + resource.alias + '_' + resource.model.replace(' ','_') + '.tm'
         tftp_template_config_path = tftp_template_config_path.replace(' ', '_')
         # try:
         # look for a concrete config file
@@ -371,8 +391,9 @@ class NetworkingSaveRestore(object):
                 tmp_template_config_file_data = content_file.read()
 
             concrete_config_data = ''
+            subst_log = ''
             try:
-                concrete_config_data = config_file_mgr.create_concrete_config_from_template(
+                concrete_config_data, subst_log = config_file_mgr.create_concrete_config_from_template(
                     tmp_template_config_file_data,
                     config_set_pool_data,
                     self.sandbox, resource)
@@ -381,7 +402,15 @@ class NetworkingSaveRestore(object):
                                                         'for resource {0}'.format(resource.name),
                                           log_message=qe.message,
                                           write_to_output_window=True)
-
+            if resource.attribute_exist('Subst Log') and subst_log > '':
+                now = datetime.datetime.now()
+                subst_log = self.sandbox.id + ' @ ' + now.strftime("%Y-%m-%d %H:%M") + '\n' + subst_log
+                try:
+                    resource.set_attribute_value('Subst_Log', subst_log)
+                except QualiError as qe:
+                    self.sandbox.report_error('Could not post subst_log data for resource {0}'.format(resource.name),
+                                              log_message=qe.message,
+                                              write_to_output_window=True)
             tmp_concrete_config_file = tempfile.NamedTemporaryFile(delete=False)
             tf = file(tmp_concrete_config_file.name, 'wb+')
             tf.write(concrete_config_data)
