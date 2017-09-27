@@ -51,7 +51,7 @@ class EnvironmentSetupResources(object):
             # call activate_all_routes_and_connectors
             sandbox.activate_all_routes_and_connectors()
 
-            sandbox.report_info('Sandbox setup finished successfully')
+            sandbox.report_info('Sandbox setup finished.', write_to_output_window=True)
 
             # Call routes_validation
             #   sandbox.routes_validation()
