@@ -22,7 +22,10 @@ class ConfigFileManager:
         :param SandboxBase sandbox:  The sandbox to get other resources values from
         :param ResourceBase resource:  The resource we want to create the config file for
         """
+        # if resource is None:
+        #     raise QualiError('')
         try:
+
             concrete_config_data = template_config_data
             subst_log = ""
             # Replace {ConfigPool.PARAM} with PARAM's value from the pool
@@ -89,7 +92,7 @@ class ConfigFileManager:
                 if concrete_name <= ' ':
                     raise Exception('Could not find a resource with alias ' + sb_alias + '; likely missing from blueprint.')
 
-            return concrete_config_data, subst_log
+            return concrete_config_data  #, subst_log
         except Exception as ex:
             raise QualiError('ConfigFileManager', "Failed to create concrete config for " + resource.name +
                              " from template. Unexpected error: " + ex.message)
