@@ -21,7 +21,13 @@ class ConfigFileManagerTests(unittest.TestCase):
         config_file_mgr = ConfigFileManager()
 
         sandbox = None
-        resource = None
+        rd = Mock()
+        rd.Name = 'myresource'
+        rd.Address = '1.2.3.4'
+        rd.ChildResources = []
+        rd.ResourceAttributes = []
+        mock_api_session.return_value.GetResourceDetails = Mock(return_value=rd)
+        resource = ResourceBase(resource_name='myresource')
 
         tmp_template_config_file_data = """
                 {ConfigPool:Pool1}
@@ -34,8 +40,8 @@ class ConfigFileManagerTests(unittest.TestCase):
 
         the_exception = e.exception
         self.assertEqual(str(the_exception),
-                         "CloudShell error at ConfigFileManager. "
-                         "Error is: Failed to create a concrete config file from the template's data. "
+                         "CloudShell error at ConfigFileManager. Error is: Failed to create concrete config "
+                         "for myresource from template. "
                          "Unexpected error: Could not find attribute {configpool:pool1} in the config pool")
 
     @patch('cloudshell.helpers.scripts.cloudshell_scripts_helpers.get_api_session')
@@ -199,7 +205,7 @@ class ConfigFileManagerTests(unittest.TestCase):
         the_exception = e.exception
         self.assertEqual(str(the_exception),
                          "CloudShell error at ConfigFileManager. "
-                         "Error is: Failed to create a concrete config file from the template's data. "
+                         "Error is: Failed to create concrete config for myresource from template. "
                          "Unexpected error: Could not find attribute 'Pool123' in resource 'myresource'")
 
     @patch('cloudshell.helpers.scripts.cloudshell_scripts_helpers.get_api_session')
@@ -229,8 +235,8 @@ class ConfigFileManagerTests(unittest.TestCase):
 
         the_exception = e.exception
         self.assertEqual(str(the_exception),
-                         "CloudShell error at ConfigFileManager. Error is: "
-                         "Failed to create a concrete config file from the template's data. "
+                         "CloudShell error at ConfigFileManager. Error is: Failed to create concrete config "
+                         "for myresource from template. "
                          "Unexpected error: Could not find a resource with alias OtherDevice2; "
                          "likely missing from blueprint.")
 
