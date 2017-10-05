@@ -9,6 +9,10 @@ import datetime, time
 import json
 from time import sleep
 
+
+POWER_ON_WL = ["power_on", "Power On", "Power ON", "PowerOn"]  # whitelist for power on commands
+POWER_OFF_WL = ["power_off", "Power Off", "Power OFF", "PowerOff"]  # whitelist for power off commands
+
 class ResourceBase(object):
     def __init__(self, resource_name, resource_alias=''):
         if resource_name != "":
@@ -31,8 +35,6 @@ class ResourceBase(object):
             self.model = self.model.replace('Cisco 5500 Series Wireless LAN Controller','WLC')
             self.alias = resource_alias
 
-            self.power_on_wl = ["power_on", "Power On", "Power ON", "PowerOn"]  # whitelist for power on commands
-            self.power_off_wl = ["power_off", "Power Off", "Power OFF", "PowerOff"]  # whitelist for power off commands
 
     # -----------------------------------------
     # -----------------------------------------
@@ -49,7 +51,7 @@ class ResourceBase(object):
     # -----------------------------------------
     def has_power_on(self):
         for command in self.commands:
-            if command.Name in self.power_on_wl:
+            if command.Name in POWER_ON_WL:
                 return command.Name
         return ""
 
@@ -57,7 +59,7 @@ class ResourceBase(object):
     # -----------------------------------------
     def has_power_off(self):
         for command in self.commands:
-            if command.Name in self.power_off_wl:
+            if command.Name in POWER_OFF_WL:
                 return command.Name
         return ""
 
@@ -65,7 +67,7 @@ class ResourceBase(object):
     # -----------------------------------------
     def has_connected_power_on(self):
         for command in self.connected_commands:
-            if command.Name in self.power_on_wl:
+            if command.Name in POWER_ON_WL:
                 return command.Name
         return ""
 
@@ -73,7 +75,7 @@ class ResourceBase(object):
     # -----------------------------------------
     def has_connected_power_off(self):
         for command in self.connected_commands:
-            if command.Name in self.power_off_wl:
+            if command.Name in POWER_OFF_WL:
                 return command.Name
         return ""
 
@@ -322,7 +324,7 @@ class ResourceBase(object):
                     if 'orchestration_save' == command.Name:
                         tag = command.Tag
                         config_name = self.execute_connected_command(reservation_id, 'orchestration_save', tag,
-                                                                     commandInputs=['shallow',''], printOutput=False)
+                                                                     commandInputs=[InputNameValue('shallow','')], printOutput=False)
                         return config_name.Output
 
             else:
