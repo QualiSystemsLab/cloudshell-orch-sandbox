@@ -116,9 +116,9 @@ class ResourceBase(object):
 
     # -----------------------------------------
     # -----------------------------------------
-    def get_upcoming(self, dev_name, period_start, period_end):
+    def get_upcoming(self, period_start, period_end):
         try:
-            upcoming = self.api_session.GetResourceAvailabilityInTimeRange(resourcesNames=([dev_name]),
+            upcoming = self.api_session.GetResourceAvailabilityInTimeRange(resourcesNames=([self.name]),
                                                                           startTime=period_start,
                                                                           endTime=period_end,
                                                                           showAllDomains=False)
