@@ -24,9 +24,6 @@ class EnvironmentTeardownResources:
         sandbox.clear_all_resources_live_status(ignore_models)
         try:
             if saveNRestoreTool.get_storage_manager():
-                ignore_models = ['Generic TFTP server', 'Config Set Pool', 'Generic FTP server',
-                                 'netscout switch 3912', 'OnPATH Switch 3903', 'Ixia Traffic generator',
-                                 "SubNet-28", "SubNet-30", "GitLab", 'SSID_Pool']
                 saveNRestoreTool.load_config(config_stage='Base',
                                              config_type='Running',
                                              ignore_models=ignore_models,
