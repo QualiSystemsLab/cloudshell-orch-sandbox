@@ -107,10 +107,11 @@ class NetworkingSaveRestore(object):
                     if resource.has_command('Validate_L2_Routes'):
                         if been_here is False:
                             been_here = True
-                            self.sandbox.report_info('Pausing 60s before "Validate L2 Routes"', write_to_output_window=True)
+                            self.sandbox.report_info('Pausing 90s before "Validate L2 Routes"', write_to_output_window=True)
                             time.sleep(90)
                         try:
                             command_inputs = [InputNameValue('Show_Not_Found_Only', 'y')]
+                            # TODO See why we can't change this to use resource.execute command
                             self.sandbox.api_session.ExecuteCommand(self.sandbox.id, resource.name, 'Resource',
                                                                     "Validate_L2_Routes",
                                                                     commandInputs=command_inputs,
@@ -142,6 +143,7 @@ class NetworkingSaveRestore(object):
     # ----------------------------------
     def _run_asynch_load(self, resource, images_path_dict, root_path, ignore_models, config_stage,
                          health_check_attempts, lock, use_Config_file_path_attr, in_teardown_mode):
+        # TODO resolve different approach - message var vs real-time sandbox op window  messages.
         message = ""
         # run_status = True
         saved_artifact_info = None
@@ -170,6 +172,7 @@ class NetworkingSaveRestore(object):
         load_config_to_device = self._is_load_config_to_device(resource, ignore_models=ignore_models)
         # ------------------------------------------------------
         #if load_config_to_device  and  '3850-6' in resource.name:
+        # TODO change form save/restore to orchestration save and restore - high priority.
         if load_config_to_device:
             self.sandbox.report_info(resource.name + " - starting health check", write_to_output_window=True)
             health_check_result = resource.health_check(self.sandbox.id, health_check_attempts)
@@ -178,13 +181,9 @@ class NetworkingSaveRestore(object):
                 try:
                     config_path = ''
                     with lock:
-                        if config_stage == 'Snapshots':
-                            config_path = root_path + resource.name + '_' + resource.model.replace(' ','_') + '.cfg'
-                            self.sandbox.report_info("Using " + str(config_path))
-                        else:
-                            config_path = self._get_concrete_config_file_path(root_path, resource, config_stage,
+                        config_path = self._get_concrete_config_file_path(root_path, resource, config_stage,
                                                                           write_to_output=False)
-                            self.sandbox.report_info("Config path for " + resource.alias + ": " + str(config_path))
+                        self.sandbox.report_info("Config path for " + resource.alias + ": " + str(config_path))
                     if use_Config_file_path_attr:
                         resource.set_attribute_value('Config file path', config_path)
                     # TODO - Snapshots currently only restore configuration. We need to restore firmware as well
@@ -213,8 +212,8 @@ class NetworkingSaveRestore(object):
                             if image_key:
                                 #self.sandbox.report_info("Using image key " + str(image_key) + " for " + resource.name)
                                 dict_img_version = images_path_dict[image_key].version
-                                if version < ' ':
-                                    self.sandbox.report_error('Firmware spec file is missing version element for ' + resource.name)
+                                if dict_img_version == '':
+                                    self.sandbox.report_error('Failed to find target version for ' + resource.name)
                             else:
                                 # Getting here means no firmware specified in FirmwareData.csv
                                 message += "\n" + resource.name + ": NO firmware version specified in FirmwareData.csv"
@@ -274,6 +273,7 @@ class NetworkingSaveRestore(object):
 
         load_result.message = message
         #self.sandbox.report_info('power off control disabled in this vers', write_to_output_window=True)
+        # TODO more to resource class
         if is_power_ctrl_ok and in_teardown_mode and resource.model not in ignore_models:
             # Attempt PowerOFF.
             # If threshold is a Negative value, no power off.
@@ -289,7 +289,7 @@ class NetworkingSaveRestore(object):
                 if int(threshold) > 4:
                     period_start = (datetime.datetime.now() + datetime.timedelta(minutes=2)).isoformat()
                     period_end = (datetime.datetime.now() + datetime.timedelta(minutes=int(threshold))).isoformat()
-                    upcoming = resource.get_upcoming(resource.name, period_start=period_start, period_end=period_end)
+                    upcoming = resource.get_upcoming(period_start=period_start, period_end=period_end)
                     for element in upcoming.Resources:
                         if element.Name == resource.name:
                             if element.Reservations.__len__() > 0:
@@ -357,69 +357,72 @@ class NetworkingSaveRestore(object):
         :rtype: str
         """
 
-        config_file_mgr = ConfigFileManager()
-        # TODO - set the pool dictionary only once during the init of the class
-        config_set_pool_data = dict()
-        # If there is a pool resource, get the pool data
-        config_set_pool_resource = self.sandbox.get_config_set_pool_resource()
-        if config_set_pool_resource is not None:
-            config_set_pool_manager = ConfigPoolManager(sandbox=self.sandbox, pool_resource=config_set_pool_resource)
-            config_set_pool_data = config_set_pool_manager.pool_data
-        config_path = root_path + resource.alias + '_' + resource.model.replace(' ','_') + '.cfg'
-        config_path = config_path.replace(' ', '_')
-        # Look for a template config file
-        tmp_template_config_file = tempfile.NamedTemporaryFile(delete=False)
-        tftp_template_config_path = root_path + resource.alias + '_' + resource.model.replace(' ','_') + '.tm'
-        tftp_template_config_path = tftp_template_config_path.replace(' ', '_')
-        # try:
-        # look for a concrete config file
-        try:
-            self.storage_mgr.download(config_path, tmp_template_config_file.name)
-            tmp_template_config_file.close()
-            os.unlink(tmp_template_config_file.name)
-        # if no concrete file, delete the look for a template file
-        except:
+        if config_stage == 'Snapshots':
+            config_path = root_path + resource.name + '_' + resource.model.replace(' ', '_') + '.cfg'
+        else:
+            config_file_mgr = ConfigFileManager()
+            # TODO - set the pool dictionary only once during the init of the class
+            config_set_pool_data = dict()
+            # If there is a pool resource, get the pool data
+            config_set_pool_resource = self.sandbox.get_config_set_pool_resource()
+            if config_set_pool_resource is not None:
+                config_set_pool_manager = ConfigPoolManager(sandbox=self.sandbox, pool_resource=config_set_pool_resource)
+                config_set_pool_data = config_set_pool_manager.pool_data
+            config_path = root_path + resource.alias + '_' + resource.model.replace(' ','_') + '.cfg'
+            config_path = config_path.replace(' ', '_')
+            # Look for a template config file
+            tmp_template_config_file = tempfile.NamedTemporaryFile(delete=False)
+            tftp_template_config_path = root_path + resource.alias + '_' + resource.model + '.tm'
+            tftp_template_config_path = tftp_template_config_path.replace(' ', '_')
+            # try:
+            # look for a concrete config file
             try:
-                self.storage_mgr.download(tftp_template_config_path, tmp_template_config_file.name)
-            except Exception as ex:
-                print ex.message
-                # look for a generic config file for the model
-                tftp_template_config_path = root_path + resource.model + '.tm'
-                tftp_template_config_path = tftp_template_config_path.replace(' ', '_')
-                self.storage_mgr.download(tftp_template_config_path, tmp_template_config_file.name)
-            with open(tmp_template_config_file.name, 'r') as content_file:
-                tmp_template_config_file_data = content_file.read()
+                self.storage_mgr.download(config_path, tmp_template_config_file.name)
+                tmp_template_config_file.close()
+                os.unlink(tmp_template_config_file.name)
+            # if no concrete file, delete the look for a template file
+            except:
+                try:
+                    self.storage_mgr.download(tftp_template_config_path, tmp_template_config_file.name)
+                except Exception as ex:
+                    self.sandbox.report_info(ex.message)
+                    # look for a generic config file for the model
+                    tftp_template_config_path = root_path + resource.model + '.tm'
+                    tftp_template_config_path = tftp_template_config_path.replace(' ', '_')
+                    self.storage_mgr.download(tftp_template_config_path, tmp_template_config_file.name)
+                with open(tmp_template_config_file.name, 'r') as content_file:
+                    tmp_template_config_file_data = content_file.read()
 
-            concrete_config_data = ''
+                concrete_config_data = ''
 
-            try:
-                concrete_config_data = config_file_mgr.create_concrete_config_from_template(
-                    tmp_template_config_file_data,
-                    config_set_pool_data,
-                    self.sandbox, resource)
-            except QualiError as qe:
-                self.sandbox.report_error(error_message='Could not create a concrete config file '
-                                                        'for resource {0}'.format(resource.name),
-                                          log_message=qe.message,
-                                          write_to_output_window=True)
+                try:
+                    concrete_config_data = config_file_mgr.create_concrete_config_from_template(
+                        tmp_template_config_file_data,
+                        config_set_pool_data,
+                        self.sandbox, resource)
+                except QualiError as qe:
+                    self.sandbox.report_error(error_message='Could not create a concrete config file '
+                                                            'for resource {0}'.format(resource.name),
+                                              log_message=qe.message,
+                                              write_to_output_window=True)
 
-            tmp_concrete_config_file = tempfile.NamedTemporaryFile(delete=False)
-            tf = file(tmp_concrete_config_file.name, 'wb+')
-            tf.write(concrete_config_data)
-            tf.flush()
-            tf.close()
-            tmp_template_config_file.close()
-            os.unlink(tmp_template_config_file.name)
-            short_Reservation_id = self.sandbox.id[len(self.sandbox.id) - 4:len(self.sandbox.id)]
-            concrete_file_path = root_path + 'temp/' + short_Reservation_id + '_' + resource.alias + \
-                                 '_' + resource.model + '.cfg'
-            concrete_file_path = concrete_file_path.replace(' ', '_')
-            # TODO - clean the temp dir on the tftp server
-            self.storage_mgr.upload(concrete_file_path, tmp_concrete_config_file.name)
-            tmp_concrete_config_file.close()
-            os.unlink(tmp_concrete_config_file.name)
-            # Set the path to the new concrete file
-            config_path = concrete_file_path
+                tmp_concrete_config_file = tempfile.NamedTemporaryFile(delete=False)
+                tf = file(tmp_concrete_config_file.name, 'wb+')
+                tf.write(concrete_config_data)
+                tf.flush()
+                tf.close()
+                tmp_template_config_file.close()
+                os.unlink(tmp_template_config_file.name)
+                short_Reservation_id = self.sandbox.id[len(self.sandbox.id) - 4:len(self.sandbox.id)]
+                concrete_file_path = root_path + 'temp/' + short_Reservation_id + '_' + resource.alias + \
+                                     '_' + resource.model + '.cfg'
+                concrete_file_path = concrete_file_path.replace(' ', '_')
+                # TODO - clean the temp dir on the tftp server
+                self.storage_mgr.upload(concrete_file_path, tmp_concrete_config_file.name)
+                tmp_concrete_config_file.close()
+                os.unlink(tmp_concrete_config_file.name)
+                # Set the path to the new concrete file
+                config_path = concrete_file_path
 
         return config_path
 
@@ -442,7 +445,7 @@ class NetworkingSaveRestore(object):
                                          write_to_output_window=True)
             else:
                 self.storage_mgr.create_dir(env_dir, write_to_output=True)
-                self.sandbox.report_info("Configs saving to\n" + env_dir, write_to_output_window=True)
+                # self.sandbox.report_info("Configs saving to\n" + env_dir, write_to_output_window=True)
         except QualiError as e:
             self.sandbox.report_error("Save snapshot failed attempting to make dir. " + str(e),
                                       write_to_output_window=write_to_output, raise_error=True)
@@ -525,11 +528,6 @@ class NetworkingSaveRestore(object):
             for ignore_model in ignore_models:
                 if resource.model.lower() == ignore_model.lower():
                     return False
-
-        apps = self.sandbox.get_Apps_resources()
-        for app in apps:
-            if app.Name == resource.name:
-                return False
 
         return True
 
