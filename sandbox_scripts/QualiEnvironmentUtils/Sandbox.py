@@ -422,6 +422,7 @@ class SandboxBase(object):
 
     # -----------------------------------------
     # -----------------------------------------
+    # TODO When we can change desc by api....
     def update_description(self, description):
         # No api exists yet for this feature
         return
