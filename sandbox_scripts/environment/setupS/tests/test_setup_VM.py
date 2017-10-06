@@ -1,6 +1,6 @@
 import unittest
 from mock import patch, Mock, call
-from sandbox_scripts.environment.setup.setup_VM import EnvironmentSetupVM
+from sandbox_scripts.environment.setupS.setup_VM import EnvironmentSetupVM
 from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.api.cloudshell_api import ResourceInfoVmDetails
@@ -25,7 +25,7 @@ conContext = '''{"serverAddress": "localhost",
 
 class SetupVMTests(unittest.TestCase):
 
-    @patch('sandbox_scripts.environment.setup.setup_VM.get_qs_logger')
+    @patch('sandbox_scripts.environment.setupS.setup_VM.get_qs_logger')
     def setUp(self, mock_logger):
         os.environ['reservationContext'] = resContext
         os.environ['qualiConnectivityContext'] = conContext
@@ -35,8 +35,8 @@ class SetupVMTests(unittest.TestCase):
         pass
 
     @patch('cloudshell.helpers.scripts.cloudshell_scripts_helpers.get_api_session')
-    @patch('sandbox_scripts.environment.setup.setup_VM.SandboxBase')
-    @patch('sandbox_scripts.environment.setup.setup_VM.SaveRestoreManager')
+    @patch('sandbox_scripts.environment.setupS.setup_VM.SandboxBase')
+    @patch('sandbox_scripts.environment.setupS.setup_VM.SaveRestoreManager')
     def test_setup_vm_with_no_resources(self, mock_save, mock_sandboxbase, mock_api_session):
 
         self.setup_script.execute()
@@ -46,8 +46,8 @@ class SetupVMTests(unittest.TestCase):
         mock_sandboxbase.return_value.report_info.assert_has_calls(report_info_calls)
 
     @patch('cloudshell.helpers.scripts.cloudshell_scripts_helpers.get_api_session')
-    @patch('sandbox_scripts.environment.setup.setup_VM.SandboxBase')
-    @patch('sandbox_scripts.environment.setup.setup_VM.SaveRestoreManager')
+    @patch('sandbox_scripts.environment.setupS.setup_VM.SandboxBase')
+    @patch('sandbox_scripts.environment.setupS.setup_VM.SaveRestoreManager')
     def test_setup_vm_with_regular_resource(self, mock_save, mock_sandboxbase, mock_api_session):
 
         rdi = Mock()
@@ -82,8 +82,8 @@ class SetupVMTests(unittest.TestCase):
 
 
     @patch('cloudshell.helpers.scripts.cloudshell_scripts_helpers.get_api_session')
-    @patch('sandbox_scripts.environment.setup.setup_VM.SandboxBase')
-    @patch('sandbox_scripts.environment.setup.setup_VM.SaveRestoreManager')
+    @patch('sandbox_scripts.environment.setupS.setup_VM.SandboxBase')
+    @patch('sandbox_scripts.environment.setupS.setup_VM.SaveRestoreManager')
     def test_setup_vm_with_static_app_resource_power_on_no_wait_for_ip(self, mock_save, mock_sandboxbase, mock_api_session):
         rdi = Mock()
         resource1 = Mock()
@@ -131,8 +131,8 @@ class SetupVMTests(unittest.TestCase):
 
 
     @patch('cloudshell.helpers.scripts.cloudshell_scripts_helpers.get_api_session')
-    @patch('sandbox_scripts.environment.setup.setup_VM.SandboxBase')
-    @patch('sandbox_scripts.environment.setup.setup_VM.SaveRestoreManager')
+    @patch('sandbox_scripts.environment.setupS.setup_VM.SandboxBase')
+    @patch('sandbox_scripts.environment.setupS.setup_VM.SaveRestoreManager')
     def test_setup_vm_with_deployed_app_resource(self, mock_save, mock_sandboxbase, mock_api_session):
         rdi = Mock()
         resource1 = Mock()
