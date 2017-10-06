@@ -16,8 +16,8 @@ class EnvironmentSetupVM(object):
                                     log_group=self.reservation_id,
                                     log_category='Setup')
 
-    # ---------------------------
-    # ---------------------------
+    # ----------------------------
+    # ----------------------------
     def execute(self):
         self.sandbox = SandboxBase(self.reservation_id, self.logger)
         #TODO: don't use networking save and restore to figure if it's a snapshot setup
