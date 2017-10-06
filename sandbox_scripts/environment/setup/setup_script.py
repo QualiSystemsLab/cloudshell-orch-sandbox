@@ -57,7 +57,7 @@ class EnvironmentSetup(object):
 
         self.logger.info("Setup for reservation {0} completed".format(self.reservation_id))
         #api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-        #                                    message='Sandbox setup finished successfully')
+        #                                   message='Sandbox setup finished successfully')
 
     def _prepare_connectivity(self, api, reservation_id):
         """
